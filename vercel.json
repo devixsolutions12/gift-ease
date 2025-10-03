@@ -11,7 +11,15 @@
   ],
   "routes": [
     {
-      "src": "^/[^.]*$",
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|pdf|zip|tar|gz))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
