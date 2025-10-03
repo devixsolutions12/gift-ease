@@ -17,5 +17,8 @@
   ],
   "github": {
     "silent": true
+  },
+  "deploymentProtection": {
+    "enabled": false
   }
 }
