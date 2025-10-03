@@ -9,7 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_A
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userLogin } = useAuth();
+  const { userLogin, connectionError } = useAuth();
   const isLogin = location.pathname === '/login';
   
   const [formData, setFormData] = useState({
@@ -99,7 +99,13 @@ const AuthPage = () => {
       console.log('Response received:', response);
       
       // Save token to localStorage and update context
-      userLogin(response.data.token, response.data.user);
+      const result = await userLogin(response.data.token, response.data.user);
+      
+      if (!result.success) {
+        setError(result.message);
+        setLoading(false);
+        return;
+      }
       
       // Show success message
       setSuccess(isLogin ? 'Login successful! Redirecting...' : 'Registration successful! Welcome to GiftEase.');
@@ -142,6 +148,14 @@ const AuthPage = () => {
       <div className="container">
         <div className="auth-form-container">
           <h2>{isLogin ? 'Login to Your Account' : 'Create an Account'}</h2>
+          
+          {connectionError && (
+            <div className="error-message">
+              ⚠️ Unable to connect to the server. Please check your internet connection and make sure the server is running.
+              <br />
+              <small>If this persists, contact support.</small>
+            </div>
+          )}
           
           {error && <div className="error-message">{error}</div>}
           {success && <div className="success-message">{success}</div>}

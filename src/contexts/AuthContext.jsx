@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState(false);
 
   // Check for existing tokens on app load
   useEffect(() => {
@@ -29,11 +30,16 @@ export const AuthProvider = ({ children }) => {
           const response = await axios.get(`${API_BASE_URL}/api/users/profile`, {
             headers: {
               Authorization: userToken
-            }
+            },
+            timeout: 10000 // 10 second timeout
           });
           setUser(response.data);
+          setConnectionError(false);
         } catch (error) {
-          console.error('User token invalid:', error);
+          console.error('User token invalid or server unreachable:', error);
+          if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('network')) {
+            setConnectionError(true);
+          }
           localStorage.removeItem('userToken');
         }
       }
@@ -46,12 +52,17 @@ export const AuthProvider = ({ children }) => {
           await axios.get(`${API_BASE_URL}/api/admin/orders/pending`, {
             headers: {
               Authorization: adminToken
-            }
+            },
+            timeout: 10000 // 10 second timeout
           });
           // If successful, set admin as authenticated
           setAdmin({ token: adminToken });
+          setConnectionError(false);
         } catch (error) {
-          console.error('Admin token invalid:', error);
+          console.error('Admin token invalid or server unreachable:', error);
+          if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('network')) {
+            setConnectionError(true);
+          }
           localStorage.removeItem('adminToken');
         }
       }
@@ -62,9 +73,27 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  const userLogin = (token, userData) => {
-    localStorage.setItem('userToken', token);
-    setUser(userData);
+  const userLogin = async (token, userData) => {
+    try {
+      // Verify the token is valid before setting it
+      await axios.get(`${API_BASE_URL}/api/users/profile`, {
+        headers: {
+          Authorization: token
+        },
+        timeout: 10000 // 10 second timeout
+      });
+      localStorage.setItem('userToken', token);
+      setUser(userData);
+      setConnectionError(false);
+      return { success: true };
+    } catch (error) {
+      console.error('Login failed:', error);
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('network')) {
+        setConnectionError(true);
+        return { success: false, message: 'Unable to connect to the server. Please check your internet connection and make sure the server is running.' };
+      }
+      return { success: false, message: 'Invalid credentials or server error.' };
+    }
   };
 
   const userLogout = () => {
@@ -72,9 +101,27 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const adminLogin = (token) => {
-    localStorage.setItem('adminToken', token);
-    setAdmin({ token });
+  const adminLogin = async (token) => {
+    try {
+      // Verify the token is valid before setting it
+      await axios.get(`${API_BASE_URL}/api/admin/orders/pending`, {
+        headers: {
+          Authorization: token
+        },
+        timeout: 10000 // 10 second timeout
+      });
+      localStorage.setItem('adminToken', token);
+      setAdmin({ token });
+      setConnectionError(false);
+      return { success: true };
+    } catch (error) {
+      console.error('Admin login failed:', error);
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('network')) {
+        setConnectionError(true);
+        return { success: false, message: 'Unable to connect to the server. Please check your internet connection and make sure the server is running.' };
+      }
+      return { success: false, message: 'Invalid admin credentials or server error.' };
+    }
   };
 
   const adminLogout = () => {
@@ -86,6 +133,7 @@ export const AuthProvider = ({ children }) => {
     user,
     admin,
     loading,
+    connectionError,
     userLogin,
     userLogout,
     adminLogin,
