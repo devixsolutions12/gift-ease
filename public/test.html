@@ -1,10 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Deployment Test</title>
+    <title>GiftEase Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 30px;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            background: rgba(20, 83, 45, 0.7);
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+        button {
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(129, 140, 248, 0.3);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(129, 140, 248, 0.4);
+        }
+    </style>
 </head>
 <body>
-    <h1>GiftEase Deployment Successful!</h1>
-    <p>If you can see this page, the deployment is working correctly.</p>
+    <div class="container">
+        <h1>GiftEase Test Page</h1>
+        <div class="status">
+            <h2>✅ Static Content Working</h2>
+            <p>If you can see this page, the server is working correctly.</p>
+        </div>
+        <p>This is a simple HTML test page to verify server functionality.</p>
+        <p>If you can see this but not the React app, there may be a JavaScript issue.</p>
+        <button onclick="window.location.href='/'">Try Main App</button>
+        <button onclick="window.location.href='/packages/play-store'">Try Packages Page</button>
+    </div>
 </body>
 </html>
