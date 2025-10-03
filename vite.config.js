@@ -20,6 +20,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000
   },
   optimizeDeps: {
-    include: ['react-google-recaptcha']
+    include: []
   }
 })
