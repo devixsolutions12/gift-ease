@@ -13,8 +13,10 @@
     "preview": "vite preview",
     "build:prod": "vite build --mode production",
     "deploy": "node deploy.js",
+    "deploy-now": "node deploy-to-vercel-now.cjs",
     "fix-deploy": "node fix-deployment-win.cjs",
-    "fix-deploy-win": "node fix-deployment-win.cjs"
+    "fix-deploy-win": "node fix-deployment-win.cjs",
+    "verify-live": "node verify-deployment-live.cjs"
   },
   "dependencies": {
     "atlas-client": "^1.1.0",
