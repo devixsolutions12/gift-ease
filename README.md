@@ -34,9 +34,26 @@ Builds the app for production to the `dist` folder.
 
 Preview the production build locally.
 
+## Environment Variables
+
+Create a `.env.local` file in the project root with the following variables:
+
+```
+REACT_APP_API_URL=http://localhost:5003
+VITE_API_URL=http://localhost:5003
+```
+
+For production deployment, replace the URL with your actual backend API URL.
+
 ## Deployment
 
 This project is configured for easy deployment to Vercel with automated CI/CD.
+
+To deploy to Vercel:
+1. Push your code to GitHub
+2. Import the repository in Vercel
+3. Set the environment variables in Vercel dashboard
+4. Deploy
 
 ## Learn More
 

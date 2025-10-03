@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
-// Set default base URL for all requests
-axios.defaults.baseURL = 'http://localhost:5003';
+// Set base URL from environment variable or default to localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:5003';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -80,8 +80,8 @@ const AuthPage = () => {
     
     try {
       const url = isLogin 
-        ? 'http://localhost:5003/api/users/login' 
-        : 'http://localhost:5003/api/users/register';
+        ? `${API_BASE_URL}/api/users/login` 
+        : `${API_BASE_URL}/api/users/register`;
       const requestData = isLogin 
         ? { email: formData.email, password: formData.password }
         : { name: formData.name, email: formData.email, password: formData.password };

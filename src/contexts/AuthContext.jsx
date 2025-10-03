@@ -1,6 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
+// Set base URL from environment variable or default to localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:5003';
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -23,7 +26,7 @@ export const AuthProvider = ({ children }) => {
       const userToken = localStorage.getItem('userToken');
       if (userToken) {
         try {
-          const response = await axios.get('http://localhost:5003/api/users/profile', {
+          const response = await axios.get(`${API_BASE_URL}/api/users/profile`, {
             headers: {
               Authorization: userToken
             }
@@ -40,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       if (adminToken) {
         try {
           // Verify admin token by making a simple request
-          await axios.get('http://localhost:5003/api/admin/orders/pending', {
+          await axios.get(`${API_BASE_URL}/api/admin/orders/pending`, {
             headers: {
               Authorization: adminToken
             }
