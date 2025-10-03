@@ -27,7 +27,15 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
 
+    // Set loading to false after a short delay to prevent blank page
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
     checkAuthStatus();
+    
+    // Clean up timer
+    return () => clearTimeout(timer);
   }, []);
 
   const adminLogin = async (token) => {
@@ -54,9 +62,10 @@ export const AuthProvider = ({ children }) => {
     adminLogout
   };
 
+  // Always render children, even while loading
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
