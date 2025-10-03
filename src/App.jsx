@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import Home from './pages/Home';
+import MinimalHome from './pages/MinimalHome';
 import PaymentPage from './pages/PaymentPage';
 import AdminLogin from './pages/AdminLogin';
 import LocalAdminPanel from './pages/LocalAdminPanel';
@@ -57,7 +57,7 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<MinimalHome />} />
             <Route path="/packages/:productType" element={<PackagesPage />} />
             <Route path="/checkout/:productType" element={<CheckoutPage />} />
             <Route path="/orders" element={<OrdersPage />} />
