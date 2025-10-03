@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
 import ReCAPTCHA from "react-google-recaptcha";
 import bgmiImage from '../assets/bgmi.png';
+import { saveLocalOrder } from '../utils/localOrders';
 // Using professional SVG placeholders that represent actual product images
 const playStoreImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='20' fill='%234285F4'/%3E%3Crect x='40' y='40' width='120' height='80' rx='10' fill='white'/%3E%3Ccircle cx='70' cy='80' r='15' fill='%2334A853'/%3E%3Ccircle cx='110' cy='80' r='15' fill='%23FBBC05'/%3E%3Ccircle cx='150' cy='80' r='15' fill='%23EA4335'/%3E%3Crect x='60' y='130' width='80' height='15' rx='7' fill='%23ccc'/%3E%3Ctext x='100' y='165' font-family='Arial, sans-serif' font-size='14' text-anchor='middle' fill='white'%3EGoogle Play%3C/text%3E%3C/svg%3E";
 const freeFireImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='20' fill='%23FF6B35'/%3E%3Cpath d='M100 50 L130 100 L100 150 L70 100 Z' fill='white'/%3E%3Ccircle cx='100' cy='100' r='25' fill='%23FF6B35'/%3E%3Crect x='60' y='160' width='80' height='15' rx='7' fill='%23fff'/%3E%3Ctext x='100' y='190' font-family='Arial, sans-serif' font-size='14' text-anchor='middle' fill='white'%3EFree Fire%3C/text%3E%3C/svg%3E";
@@ -14,14 +14,15 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
-    userName: '',
-    userEmail: '',
+    gmail: '',
+    freeFireUid: '',
+    bgmiId: '',
     transactionId: ''
   });
   
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [submittedOrderId, setSubmittedOrderId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [captchaValue, setCaptchaValue] = useState(null);
   
   // Payment settings state
@@ -38,75 +39,46 @@ const CheckoutPage = () => {
       name: 'Play Store Redeem Code',
       image: playStoreImage,
       alt: 'Google Play Redeem Code Card',
-      gradient: 'linear-gradient(135deg, #4285F4, #34A853, #FBBC05, #EA4335)'
+      gradient: 'linear-gradient(135deg, #4285F4, #34A853, #FBBC05, #EA4335)',
+      fieldLabel: 'Gmail Address',
+      fieldPlaceholder: 'Enter your Gmail address to receive code',
+      fieldName: 'gmail'
     },
     'free-fire': {
       name: 'Free Fire Diamonds',
       image: freeFireImage,
       alt: 'Free Fire Diamonds Loot Chest',
-      gradient: 'linear-gradient(135deg, #FF6B35, #F7931E)'
+      gradient: 'linear-gradient(135deg, #FF6B35, #F7931E)',
+      fieldLabel: 'Free Fire UID',
+      fieldPlaceholder: 'Enter your Free Fire UID for delivery',
+      fieldName: 'freeFireUid'
     },
     'bgmi': {
       name: 'BGMI UC',
       image: bgmiImage,
       alt: 'BGMI UC Currency Voucher',
-      gradient: 'linear-gradient(135deg, #8A2BE2, #4B0082)'
+      gradient: 'linear-gradient(135deg, #8A2BE2, #4B0082)',
+      fieldLabel: 'BGMI ID',
+      fieldPlaceholder: 'Enter your BGMI ID for delivery',
+      fieldName: 'bgmiId'
     }
   };
   
   const currentProduct = productDetails[productType] || productDetails['play-store'];
   const selectedPackage = location.state?.package;
   
-  // Get user profile and payment settings on component mount
+  // Get payment settings on component mount
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      const token = localStorage.getItem('userToken');
-      
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      
+    // Load payment settings from local storage
+    const savedSettings = localStorage.getItem('giftEasePaymentSettings');
+    if (savedSettings) {
       try {
-        const response = await axios.get('http://localhost:5003/api/users/profile', {
-          headers: {
-            Authorization: token
-          }
-        });
-        
-        setUser(response.data);
-        setFormData({
-          ...formData,
-          userName: response.data.name,
-          userEmail: response.data.email
-        });
+        setPaymentSettings(JSON.parse(savedSettings));
       } catch (error) {
-        console.error('Error fetching user profile:', error);
-        navigate('/login');
-      } finally {
-        setLoading(false);
+        console.error('Error parsing payment settings:', error);
       }
-    };
-    
-    const fetchPaymentSettings = async () => {
-      try {
-        const response = await axios.get('http://localhost:5003/api/payment-settings');
-        setPaymentSettings(response.data);
-      } catch (error) {
-        console.error('Error fetching payment settings:', error);
-        // Use default settings if unable to fetch
-        setPaymentSettings({
-          upiId: 'giftease@upi',
-          upiName: 'GiftEase Payments',
-          paymentInstructions: 'Please make the payment using UPI to the following details:\n1. Open your UPI app (Google Pay, PhonePe, Paytm, etc.)\n2. Scan the QR code or enter the UPI ID above\n3. Enter the exact amount\n4. Complete the payment and note the transaction ID',
-          qrCodeImage: ''
-        });
-      }
-    };
-    
-    fetchUserProfile();
-    fetchPaymentSettings();
-  }, [navigate]);
+    }
+  }, []);
   
   const handleChange = (e) => {
     setFormData({
@@ -128,26 +100,29 @@ const CheckoutPage = () => {
       return;
     }
     
+    // Validate required field based on product type
+    if (!formData[currentProduct.fieldName]) {
+      alert(`Please enter your ${currentProduct.fieldLabel}`);
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('userToken');
-      
       const orderData = {
         productName: `${currentProduct.name} - ${selectedPackage.value}`,
         amount: parseInt(selectedPackage.price.replace('₹', '')),
-        userId: user._id,
-        userName: formData.userName,
-        userEmail: formData.userEmail,
+        [currentProduct.fieldName]: formData[currentProduct.fieldName],
         transactionId: formData.transactionId
       };
       
-      // Submit order to backend
-      await axios.post('http://localhost:5003/api/orders', orderData, {
-        headers: {
-          Authorization: token
-        }
-      });
+      // Save order to local storage
+      const savedOrder = saveLocalOrder(orderData);
       
-      setIsSubmitted(true);
+      if (savedOrder) {
+        setIsSubmitted(true);
+        setSubmittedOrderId(savedOrder.id);
+      } else {
+        alert('Error saving order. Please try again.');
+      }
     } catch (error) {
       console.error('Error submitting order:', error);
       alert('Error submitting order. Please try again.');
@@ -189,13 +164,33 @@ const CheckoutPage = () => {
           <div className="confirmation-message">
             <h2>Order Submitted Successfully!</h2>
             <p>Your order has been submitted for verification.</p>
-            <p>You will receive your gift code in the "Your Orders" section once approved.</p>
-            <button 
-              className="btn-primary"
-              onClick={() => navigate('/orders')}
-            >
-              View Your Orders
-            </button>
+            <div className="order-id-display">
+              <p><strong>Your Order ID is: {submittedOrderId}</strong></p>
+              <p>Save this Order ID to track your order progress.</p>
+            </div>
+            <div className="next-steps">
+              <h3>Next Steps:</h3>
+              <ol>
+                <li>Complete your payment using the instructions above</li>
+                <li>Wait for admin verification (usually within 1-2 hours)</li>
+                <li>Track your order status using the Order ID above</li>
+                <li>Receive your gift code when approved</li>
+              </ol>
+            </div>
+            <div className="action-buttons">
+              <button 
+                className="btn-primary"
+                onClick={() => navigate('/track-order')}
+              >
+                Track Your Order
+              </button>
+              <button 
+                className="btn-secondary"
+                onClick={() => navigate('/')}
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -210,9 +205,6 @@ const CheckoutPage = () => {
           <nav className="nav">
             <button onClick={handleBack} className="nav-button">
               ← Back
-            </button>
-            <button onClick={() => navigate('/orders')} className="nav-button">
-              Your Orders
             </button>
             <button onClick={() => navigate('/help')} className="nav-button">
               Help
@@ -290,32 +282,20 @@ const CheckoutPage = () => {
               
               {/* Transaction Form */}
               <form onSubmit={handleSubmit} className="payment-form">
-                <h3>Transaction Details</h3>
+                <h3>Required Information</h3>
                 
                 <div className="form-group">
-                  <label htmlFor="userName">Full Name</label>
+                  <label htmlFor={currentProduct.fieldName}>{currentProduct.fieldLabel}</label>
                   <input
                     type="text"
-                    id="userName"
-                    name="userName"
-                    value={formData.userName}
+                    id={currentProduct.fieldName}
+                    name={currentProduct.fieldName}
+                    value={formData[currentProduct.fieldName]}
                     onChange={handleChange}
+                    placeholder={currentProduct.fieldPlaceholder}
                     required
-                    readOnly
                   />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="userEmail">Email Address</label>
-                  <input
-                    type="email"
-                    id="userEmail"
-                    name="userEmail"
-                    value={formData.userEmail}
-                    onChange={handleChange}
-                    required
-                    readOnly
-                  />
+                  <small>{currentProduct.fieldPlaceholder}</small>
                 </div>
                 
                 <div className="form-group">

@@ -55,6 +55,22 @@ To deploy to Vercel:
 3. Set the environment variables in Vercel dashboard
 4. Deploy
 
+## Troubleshooting Deployment Issues
+
+If you encounter deployment issues, especially with Railway backend deployment:
+
+1. **"No repository found" on Railway**: 
+   - Run `CHECK_GITHUB_REPO.bat` to verify repository access
+   - Check `RAILWAY_DEPLOYMENT_TROUBLESHOOTING.md` for detailed solutions
+   - Try the Railway CLI deployment method using `DEPLOY_TO_RAILWAY_USING_CLI.bat`
+
+2. **GitHub Integration Problems**:
+   - Ensure Railway has proper GitHub permissions
+   - Consider making your repository temporarily public for deployment
+
+3. **Alternative Deployment**:
+   - Use `DEPLOY_TO_RAILWAY_USING_CLI.bat` for direct CLI deployment
+
 ## Learn More
 
 You can learn more in the [Vite documentation](https://vitejs.dev/guide/).

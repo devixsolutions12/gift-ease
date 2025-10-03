@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import { getLocalOrders, updateLocalOrder, getLocalPaymentSettings, saveLocalPaymentSettings } from '../utils/localOrders';
 
-const AdminDashboard = () => {
+const LocalAdminPanel = () => {
   const navigate = useNavigate();
-  const { admin, adminLogout } = useAuth();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [giftCode, setGiftCode] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   
   // Payment settings state
@@ -30,87 +27,50 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
+    processingOrders: 0,
     approvedOrders: 0,
+    deliveredOrders: 0,
     rejectedOrders: 0,
     totalRevenue: 0
   });
   
-  // Check authentication on component mount
+  // Load data on component mount
   useEffect(() => {
-    if (!admin) {
-      navigate('/admin/login');
-      return;
-    }
-    
-    fetchOrders();
-    fetchPaymentSettings();
-  }, [admin, navigate]);
+    loadOrders();
+    loadPaymentSettings();
+  }, []);
   
-  const fetchOrders = async () => {
-    try {
-      // Set base URL from environment variable or default to localhost
-      const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await axios.get(`${API_BASE_URL}/api/admin/orders/pending`, {
-        headers: {
-          Authorization: admin.token
-        }
-      });
-      
-      setOrders(response.data);
-      setFilteredOrders(response.data);
-      calculateStats(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      setLoading(false);
-      
-      if (error.response && error.response.status === 401) {
-        // Token expired or invalid
-        adminLogout();
-        navigate('/admin/login');
-      }
-    }
+  const loadOrders = () => {
+    const ordersData = getLocalOrders();
+    setOrders(ordersData);
+    calculateStats(ordersData);
   };
   
-  const fetchPaymentSettings = async () => {
-    try {
-      // Set base URL from environment variable or default to localhost
-      const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await axios.get(`${API_BASE_URL}/api/payment-settings`, {
-        headers: {
-          Authorization: admin.token
-        }
-      });
-      
-      setPaymentSettings(response.data);
-      if (response.data.qrCodeImage) {
-        setQrCodePreview(response.data.qrCodeImage);
-      }
-    } catch (error) {
-      console.error('Error fetching payment settings:', error);
-      // Initialize with default values if settings don't exist
-      setPaymentSettings({
-        upiId: 'giftease@upi',
-        upiName: 'GiftEase Payments',
-        paymentInstructions: 'Please make the payment using UPI to the following details:\n1. Open your UPI app (Google Pay, PhonePe, Paytm, etc.)\n2. Scan the QR code or enter the UPI ID above\n3. Enter the exact amount\n4. Complete the payment and note the transaction ID',
-        qrCodeImage: ''
-      });
+  const loadPaymentSettings = () => {
+    const settings = getLocalPaymentSettings();
+    setPaymentSettings(settings);
+    if (settings.qrCodeImage) {
+      setQrCodePreview(settings.qrCodeImage);
     }
   };
   
   const calculateStats = (ordersData) => {
     const totalOrders = ordersData.length;
     const pendingOrders = ordersData.filter(order => order.status === 'pending').length;
+    const processingOrders = ordersData.filter(order => order.status === 'processing').length;
     const approvedOrders = ordersData.filter(order => order.status === 'approved').length;
+    const deliveredOrders = ordersData.filter(order => order.status === 'delivered').length;
     const rejectedOrders = ordersData.filter(order => order.status === 'rejected').length;
     const totalRevenue = ordersData
-      .filter(order => order.status === 'approved')
+      .filter(order => order.status === 'approved' || order.status === 'delivered')
       .reduce((sum, order) => sum + order.amount, 0);
     
     setStats({
       totalOrders,
       pendingOrders,
+      processingOrders,
       approvedOrders,
+      deliveredOrders,
       rejectedOrders,
       totalRevenue
     });
@@ -129,6 +89,7 @@ const AdminDashboard = () => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(order => 
+        order.id.toLowerCase().includes(term) ||
         order.productName.toLowerCase().includes(term) ||
         (order.gmail && order.gmail.toLowerCase().includes(term)) ||
         (order.freeFireUid && order.freeFireUid.toLowerCase().includes(term)) ||
@@ -160,28 +121,37 @@ const AdminDashboard = () => {
     setFilteredOrders(result);
   }, [orders, searchTerm, statusFilter, dateFilter]);
   
-  const handleApprove = async (orderId) => {
+  const handleUpdateStatus = (orderId, status) => {
+    const updatedOrder = updateLocalOrder(orderId, { status });
+    if (updatedOrder) {
+      // Update the order in the state
+      const updatedOrders = orders.map(order => 
+        order.id === orderId ? updatedOrder : order
+      );
+      
+      setOrders(updatedOrders);
+      calculateStats(updatedOrders);
+      
+      // Reset form if this was the selected order
+      if (selectedOrder === orderId) {
+        setSelectedOrder(null);
+      }
+    } else {
+      alert('Error updating order status. Please try again.');
+    }
+  };
+  
+  const handleApprove = (orderId) => {
     if (!giftCode) {
       alert('Please enter a gift code');
       return;
     }
     
-    try {
-      // Set base URL from environment variable or default to localhost
-      const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await axios.put(
-        `${API_BASE_URL}/api/admin/orders/${orderId}`,
-        { status: 'approved', giftCode },
-        {
-          headers: {
-            Authorization: admin.token
-          }
-        }
-      );
-      
+    const updatedOrder = updateLocalOrder(orderId, { status: 'approved', giftCode });
+    if (updatedOrder) {
       // Update the order in the state
       const updatedOrders = orders.map(order => 
-        order._id === orderId ? response.data : order
+        order.id === orderId ? updatedOrder : order
       );
       
       setOrders(updatedOrders);
@@ -190,29 +160,22 @@ const AdminDashboard = () => {
       // Reset form
       setSelectedOrder(null);
       setGiftCode('');
-    } catch (error) {
-      console.error('Error approving order:', error);
-      alert('Error approving order. Please try again.');
+    } else {
+      alert('Error updating order. Please try again.');
     }
   };
   
-  const handleReject = async (orderId) => {
-    try {
-      // Set base URL from environment variable or default to localhost
-      const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await axios.put(
-        `${API_BASE_URL}/api/admin/orders/${orderId}`,
-        { status: 'rejected', rejectionReason },
-        {
-          headers: {
-            Authorization: admin.token
-          }
-        }
-      );
-      
+  const handleReject = (orderId) => {
+    if (!rejectionReason) {
+      alert('Please enter a rejection reason');
+      return;
+    }
+    
+    const updatedOrder = updateLocalOrder(orderId, { status: 'rejected', rejectionReason });
+    if (updatedOrder) {
       // Update the order in the state
       const updatedOrders = orders.map(order => 
-        order._id === orderId ? response.data : order
+        order.id === orderId ? updatedOrder : order
       );
       
       setOrders(updatedOrders);
@@ -221,15 +184,15 @@ const AdminDashboard = () => {
       // Reset form
       setSelectedOrder(null);
       setRejectionReason('');
-    } catch (error) {
-      console.error('Error rejecting order:', error);
-      alert('Error rejecting order. Please try again.');
+    } else {
+      alert('Error updating order. Please try again.');
     }
   };
   
   const handleLogout = () => {
-    adminLogout();
-    navigate('/admin/login');
+    // Clear admin session (in a real app, you might want to do more here)
+    localStorage.removeItem('adminToken');
+    navigate('/');
   };
   
   const getStatusClass = (status) => {
@@ -238,6 +201,10 @@ const AdminDashboard = () => {
         return 'status-approved';
       case 'rejected':
         return 'status-rejected';
+      case 'processing':
+        return 'status-processing';
+      case 'delivered':
+        return 'status-delivered';
       default:
         return 'status-pending';
     }
@@ -249,6 +216,10 @@ const AdminDashboard = () => {
         return 'Approved';
       case 'rejected':
         return 'Rejected';
+      case 'processing':
+        return 'Processing';
+      case 'delivered':
+        return 'Delivered';
       default:
         return 'Pending';
     }
@@ -269,7 +240,7 @@ const AdminDashboard = () => {
         }
         
         return [
-          order._id,
+          order.id,
           order.productName,
           userInfo,
           order.amount,
@@ -310,51 +281,14 @@ const AdminDashboard = () => {
   };
   
   // Save payment settings
-  const savePaymentSettings = async () => {
-    try {
-      // Set base URL from environment variable or default to localhost
-      const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await axios.put(
-        `${API_BASE_URL}/api/payment-settings`,
-        paymentSettings,
-        {
-          headers: {
-            Authorization: admin.token
-          }
-        }
-      );
-      
-      setPaymentSettings(response.data);
+  const savePaymentSettings = () => {
+    const success = saveLocalPaymentSettings(paymentSettings);
+    if (success) {
       alert('Payment settings saved successfully!');
-    } catch (error) {
-      console.error('Error saving payment settings:', error);
+    } else {
       alert('Error saving payment settings. Please try again.');
     }
   };
-  
-  if (loading) {
-    return (
-      <div className="admin-dashboard">
-        <header className="admin-header">
-          <div className="container">
-            <h1 className="logo">GiftEase Admin</h1>
-            <div className="admin-nav">
-              <button onClick={handleLogout} className="btn-secondary">Logout</button>
-            </div>
-          </div>
-        </header>
-        
-        <div className="container">
-          <div className="dashboard-header">
-            <h2>Admin Dashboard</h2>
-          </div>
-          <div className="loading-message">
-            <p>Loading orders...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
   
   return (
     <div className="admin-dashboard">
@@ -408,10 +342,24 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <div className="stat-card">
+                  <div className="stat-icon">🔄</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{stats.processingOrders}</div>
+                    <div className="stat-label">Processing</div>
+                  </div>
+                </div>
+                <div className="stat-card">
                   <div className="stat-icon">✅</div>
                   <div className="stat-content">
                     <div className="stat-value">{stats.approvedOrders}</div>
                     <div className="stat-label">Approved</div>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">📦</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{stats.deliveredOrders}</div>
+                    <div className="stat-label">Delivered</div>
                   </div>
                 </div>
                 <div className="stat-card">
@@ -428,7 +376,7 @@ const AdminDashboard = () => {
                 <div className="search-box">
                   <input
                     type="text"
-                    placeholder="Search orders..."
+                    placeholder="Search orders by ID, product, or user info..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="search-input"
@@ -445,7 +393,9 @@ const AdminDashboard = () => {
                   >
                     <option value="all">All Status</option>
                     <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
                     <option value="approved">Approved</option>
+                    <option value="delivered">Delivered</option>
                     <option value="rejected">Rejected</option>
                   </select>
                 </div>
@@ -481,12 +431,12 @@ const AdminDashboard = () => {
               ) : (
                 <div className="orders-list">
                   {filteredOrders.map((order) => (
-                    <div key={order._id} className="order-card-admin">
+                    <div key={order.id} className="order-card-admin">
                       <div className="order-header-admin">
                         <div className="order-info-admin">
                           <h4>{order.productName}</h4>
                           <p className="order-meta">
-                            <span>Order ID: {order._id}</span>
+                            <span>Order ID: {order.id}</span>
                             {/* Display the relevant user information based on product type */}
                             {order.gmail && <span>Gmail: {order.gmail}</span>}
                             {order.freeFireUid && <span>FF UID: {order.freeFireUid}</span>}
@@ -520,68 +470,141 @@ const AdminDashboard = () => {
                         )}
                       </div>
                       
-                      {selectedOrder === order._id ? (
+                      {selectedOrder === order.id ? (
                         <div className="approval-form-admin">
-                          {order.status === 'pending' ? (
+                          {order.status === 'pending' || order.status === 'processing' ? (
                             <div className="approval-section">
-                              <h4>Approve Order</h4>
+                              <h4>Process Order</h4>
                               <div className="form-group">
-                                <label>Gift Code:</label>
-                                <input
-                                  type="text"
-                                  value={giftCode}
-                                  onChange={(e) => setGiftCode(e.target.value)}
-                                  placeholder="Enter gift code"
-                                  className="form-control"
-                                />
+                                <label>Update Status:</label>
+                                <div className="status-actions">
+                                  <button 
+                                    className="btn-secondary"
+                                    onClick={() => handleUpdateStatus(order.id, 'processing')}
+                                  >
+                                    Mark as Processing
+                                  </button>
+                                  <button 
+                                    className="btn-primary"
+                                    onClick={() => handleUpdateStatus(order.id, 'approved')}
+                                  >
+                                    Mark as Approved
+                                  </button>
+                                  <button 
+                                    className="btn-danger"
+                                    onClick={() => {
+                                      setSelectedOrder(order.id);
+                                      // Show rejection form
+                                    }}
+                                  >
+                                    Reject Order
+                                  </button>
+                                </div>
                               </div>
+                              
+                              {order.status === 'approved' && (
+                                <div className="form-group">
+                                  <label>Gift Code:</label>
+                                  <input
+                                    type="text"
+                                    value={giftCode}
+                                    onChange={(e) => setGiftCode(e.target.value)}
+                                    placeholder="Enter gift code"
+                                    className="form-control"
+                                  />
+                                  <button 
+                                    className="btn-primary"
+                                    onClick={() => handleApprove(order.id)}
+                                    disabled={!giftCode}
+                                  >
+                                    Save Gift Code
+                                  </button>
+                                </div>
+                              )}
+                              
                               <div className="approval-actions-admin">
                                 <button 
-                                  className="btn-primary"
-                                  onClick={() => handleApprove(order._id)}
-                                  disabled={!giftCode}
-                                >
-                                  Approve Order
-                                </button>
-                                <button 
                                   className="btn-secondary"
-                                  onClick={() => {
-                                    setSelectedOrder(null);
-                                    setGiftCode('');
-                                  }}
+                                  onClick={() => setSelectedOrder(null)}
                                 >
                                   Cancel
                                 </button>
                               </div>
                             </div>
-                          ) : (
+                          ) : order.status === 'approved' ? (
+                            <div className="delivery-section">
+                              <h4>Deliver Order</h4>
+                              <div className="form-group">
+                                <label>Gift Code:</label>
+                                <input
+                                  type="text"
+                                  value={giftCode || order.giftCode}
+                                  onChange={(e) => setGiftCode(e.target.value)}
+                                  placeholder="Enter gift code"
+                                  className="form-control"
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label>Update Status:</label>
+                                <div className="status-actions">
+                                  <button 
+                                    className="btn-primary"
+                                    onClick={() => handleUpdateStatus(order.id, 'delivered')}
+                                  >
+                                    Mark as Delivered
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="approval-actions-admin">
+                                <button 
+                                  className="btn-secondary"
+                                  onClick={() => setSelectedOrder(null)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : order.status === 'rejected' ? (
                             <div className="rejection-section-admin">
-                              <h4>Reject Order</h4>
+                              <h4>Order Rejected</h4>
                               <div className="form-group">
                                 <label>Rejection Reason:</label>
                                 <textarea
-                                  value={rejectionReason}
+                                  value={rejectionReason || order.rejectionReason}
                                   onChange={(e) => setRejectionReason(e.target.value)}
                                   placeholder="Enter rejection reason"
                                   className="form-control"
                                   rows="3"
+                                  disabled
                                 />
                               </div>
                               <div className="approval-actions-admin">
                                 <button 
-                                  className="btn-danger"
-                                  onClick={() => handleReject(order._id)}
+                                  className="btn-secondary"
+                                  onClick={() => setSelectedOrder(null)}
                                 >
-                                  Confirm Rejection
+                                  Close
                                 </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="delivery-section">
+                              <h4>Order Delivered</h4>
+                              <div className="form-group">
+                                <label>Gift Code:</label>
+                                <input
+                                  type="text"
+                                  value={order.giftCode}
+                                  className="form-control"
+                                  disabled
+                                />
+                              </div>
+                              <div className="approval-actions-admin">
                                 <button 
                                   className="btn-secondary"
-                                  onClick={() => {
-                                    setSelectedOrder(null);
-                                    setRejectionReason('');
-                                  }}
+                                  onClick={() => setSelectedOrder(null)}
                                 >
-                                  Cancel
+                                  Close
                                 </button>
                               </div>
                             </div>
@@ -589,14 +612,12 @@ const AdminDashboard = () => {
                         </div>
                       ) : (
                         <div className="order-actions-admin">
-                          {order.status === 'pending' && (
-                            <button 
-                              className="btn-primary"
-                              onClick={() => setSelectedOrder(order._id)}
-                            >
-                              Process Order
-                            </button>
-                          )}
+                          <button 
+                            className="btn-primary"
+                            onClick={() => setSelectedOrder(order.id)}
+                          >
+                            Process Order
+                          </button>
                           {order.status === 'approved' && order.giftCode && (
                             <div className="gift-code-display">
                               <strong>Gift Code:</strong> {order.giftCode}
@@ -717,4 +738,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default LocalAdminPanel;

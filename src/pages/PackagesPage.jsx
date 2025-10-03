@@ -11,15 +11,7 @@ const PackagesPage = () => {
   const navigate = useNavigate();
 
   const handleBuyNow = (packageData) => {
-    // Check if user is logged in
-    const token = localStorage.getItem('userToken');
-    if (!token) {
-      // Redirect to login if not logged in
-      navigate('/login');
-      return;
-    }
-    
-    // Navigate to checkout with package data
+    // Navigate directly to checkout with package data (no authentication required)
     navigate(`/checkout/${productType}`, { state: { package: packageData } });
   };
 
@@ -83,9 +75,6 @@ const PackagesPage = () => {
           <nav className="nav">
             <button onClick={handleBack} className="nav-button">
               ← Back to Home
-            </button>
-            <button onClick={() => navigate('/orders')} className="nav-button">
-              Your Orders
             </button>
             <button onClick={() => navigate('/help')} className="nav-button">
               Help

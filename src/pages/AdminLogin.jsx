@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -27,33 +26,22 @@ const AdminLogin = () => {
     setLoading(true);
     setError('');
     
-    console.log('Attempting login with credentials:', credentials);
-    
-    try {
-      const response = await axios.post('http://localhost:5003/api/admin/login', credentials);
-      
-      console.log('Login response:', response);
+    // Simple local authentication (in a real app, you'd want something more secure)
+    // For demo purposes, we'll use a simple check
+    if (credentials.username === 'admin' && credentials.password === 'password') {
+      // Create a simple token for demo purposes
+      const token = 'local-admin-token-' + Date.now();
       
       // Save token to localStorage and update context
-      adminLogin(response.data.token);
+      adminLogin(token);
       
       // Redirect to admin dashboard
       navigate('/admin/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      if (error.response) {
-        console.error('Error response:', error.response);
-        setError(`Login failed: ${error.response.data.message || 'Invalid credentials'}`);
-      } else if (error.request) {
-        console.error('Error request:', error.request);
-        setError('Network error. Please check if the server is running.');
-      } else {
-        console.error('Error message:', error.message);
-        setError(`Login error: ${error.message}`);
-      }
-    } finally {
-      setLoading(false);
+    } else {
+      setError('Invalid credentials. For demo purposes, use username: "admin" and password: "password"');
     }
+    
+    setLoading(false);
   };
   
   return (
@@ -92,6 +80,10 @@ const AdminLogin = () => {
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
             </button>
+            
+            <div className="demo-credentials">
+              <p><strong>Demo credentials:</strong> username: "admin", password: "password"</p>
+            </div>
           </form>
         </div>
       </div>

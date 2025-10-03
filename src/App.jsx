@@ -3,17 +3,18 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Home from './pages/Home';
 import PaymentPage from './pages/PaymentPage';
-import OrdersPage from './pages/OrdersPage';
 import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/AdminDashboard';
-import AuthPage from './pages/AuthPage';
+import LocalAdminPanel from './pages/LocalAdminPanel';
 import HelpPage from './pages/HelpPage';
 import PackagesPage from './pages/PackagesPage';
 import CheckoutPage from './pages/CheckoutPage';
 import TestPage from './pages/TestPage';
 import ImageTestPage from './pages/ImageTestPage';
 import DebugImages from './pages/DebugImages';
-import AccountPage from './pages/AccountPage';
+import OrdersPage from './pages/OrdersPage';
+import ErrorPage from './pages/ErrorPage';
+import TestLocalOrders from './pages/TestLocalOrders';
+import TrackOrderPage from './pages/TrackOrderPage';
 import MobileNavigation from './components/MobileNavigation';
 import './App.css';
 import './EnhancedStyles.css';
@@ -60,15 +61,16 @@ function App() {
             <Route path="/packages/:productType" element={<PackagesPage />} />
             <Route path="/checkout/:productType" element={<CheckoutPage />} />
             <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/account" element={<AccountPage />} />
+            <Route path="/track-order" element={<TrackOrderPage />} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="/register" element={<AuthPage />} />
+            <Route path="/admin/dashboard" element={<LocalAdminPanel />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="/image-test" element={<ImageTestPage />} />
             <Route path="/debug-images" element={<DebugImages />} />
+            <Route path="/test-local-orders" element={<TestLocalOrders />} />
+            {/* Catch-all route for any other URLs to show error page */}
+            <Route path="*" element={<ErrorPage />} />
           </Routes>
           
           {/* Mobile Navigation - only visible on mobile devices */}

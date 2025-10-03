@@ -1,17 +1,15 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import './MobileNavigation.css';
 
 const MobileNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
 
   const navItems = [
     { id: 'home', label: 'Home', icon: 'HomeAsIcon', path: '/' },
     { id: 'orders', label: 'Orders', icon: 'OrdersAsIcon', path: '/orders' },
-    { id: 'account', label: user ? 'Account' : 'Login', icon: user ? 'AccountAsIcon' : 'LoginAsIcon', path: user ? '/account' : '/login' }
+    { id: 'account', label: 'Track Order', icon: 'AccountAsIcon', path: '/track-order' }
   ];
 
   const isActive = (path) => {
@@ -45,13 +43,6 @@ const MobileNavigation = () => {
     </svg>
   );
 
-  const LoginAsIcon = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14 8V6C14 4.89543 13.1046 4 12 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20H12C13.1046 20 14 19.1046 14 18V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M10 12H20M20 12L17 9M20 12L17 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-
   const renderIcon = (iconName) => {
     switch (iconName) {
       case 'HomeAsIcon':
@@ -60,8 +51,6 @@ const MobileNavigation = () => {
         return <OrdersAsIcon />;
       case 'AccountAsIcon':
         return <AccountAsIcon />;
-      case 'LoginAsIcon':
-        return <LoginAsIcon />;
       default:
         return <span>{iconName}</span>;
     }

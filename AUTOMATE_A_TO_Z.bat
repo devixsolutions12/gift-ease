@@ -16,15 +16,17 @@ echo Please select which step you're on:
 echo.
 echo 1. Complete MongoDB Setup (Network Access ^& Connection String)
 echo 2. Deploy Backend to Railway
-echo 3. Configure Frontend in Vercel
-echo 4. Exit
+echo 3. Deploy Backend to Railway (Alternative CLI Method)
+echo 4. Configure Frontend in Vercel
+echo 5. Exit
 echo.
-set /p choice="Enter your choice (1-4): "
+set /p choice="Enter your choice (1-5): "
 
 if "%choice%"=="1" goto mongodb
 if "%choice%"=="2" goto railway
-if "%choice%"=="3" goto vercel
-if "%choice%"=="4" goto exit
+if "%choice%"=="3" goto railway_cli
+if "%choice%"=="4" goto vercel
+if "%choice%"=="5" goto exit
 echo Invalid choice. Please try again.
 echo.
 goto menu
@@ -46,6 +48,16 @@ echo.
 echo Running Railway setup script...
 echo.
 call "c:\Users\mgas8\OneDrive\Desktop\GiftEase\AUTOMATE_RAILWAY_SETUP.bat"
+cls
+goto menu
+
+:railway_cli
+echo.
+echo ^>^>^> STEP 2B: Railway Backend Deployment (CLI Method) ^<^<^<
+echo.
+echo Running Railway CLI deployment script...
+echo.
+call "c:\Users\mgas8\OneDrive\Desktop\GiftEase\DEPLOY_TO_RAILWAY_USING_CLI.bat"
 cls
 goto menu
 

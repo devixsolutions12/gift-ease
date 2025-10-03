@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import bgmiImage from '../assets/bgmi.png';
 // Using professional SVG placeholders that represent actual product images
 const playStoreImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='20' fill='%234285F4'/%3E%3Crect x='40' y='40' width='120' height='80' rx='10' fill='white'/%3E%3Ccircle cx='70' cy='80' r='15' fill='%2334A853'/%3E%3Ccircle cx='110' cy='80' r='15' fill='%23FBBC05'/%3E%3Ccircle cx='150' cy='80' r='15' fill='%23EA4335'/%3E%3Crect x='60' y='130' width='80' height='15' rx='7' fill='%23ccc'/%3E%3Ctext x='100' y='165' font-family='Arial, sans-serif' font-size='14' text-anchor='middle' fill='white'%3EGoogle Play%3C/text%3E%3C/svg%3E";
@@ -9,7 +8,6 @@ import '../App.css';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user, userLogout } = useAuth();
 
   useEffect(() => {
     // Add scroll-triggered animations
@@ -34,18 +32,8 @@ const Home = () => {
   }, []);
 
   const handleBuyNow = (productType) => {
-    // Check if user is logged in
-    if (!user) {
-      // Redirect to login if not logged in
-      navigate('/login');
-      return;
-    }
+    // Navigate directly to packages page (no authentication required)
     navigate(`/packages/${productType}`);
-  };
-
-  const handleLogout = () => {
-    userLogout();
-    window.location.reload();
   };
 
   const products = [
@@ -103,25 +91,9 @@ const Home = () => {
         <div className="container">
           <h1 className="logo" aria-label="GiftEase Logo">GiftEase</h1>
           <nav className="nav" role="navigation" aria-label="Main navigation">
-            {user ? (
-              <>
-                <button onClick={() => navigate('/orders')} className="nav-button" aria-label="View your orders">
-                  Your Orders
-                </button>
-                <button onClick={handleLogout} className="nav-button" aria-label="Logout from your account">
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => navigate('/login')} className="nav-button" aria-label="Login to your account">
-                  Login
-                </button>
-                <button onClick={() => navigate('/register')} className="nav-button" aria-label="Register for a new account">
-                  Register
-                </button>
-              </>
-            )}
+            <button onClick={() => navigate('/track-order')} className="nav-button" aria-label="Track your order">
+              Track Order
+            </button>
             <button onClick={() => navigate('/help')} className="nav-button" aria-label="Get help and support">
               Help
             </button>
