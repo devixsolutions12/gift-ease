@@ -1,6 +1,10 @@
-# GiftEase - Digital Gift Card Platform
+# GiftEase Frontend
 
-GiftEase is a modern digital gift card platform built with React and Vite. The application allows users to browse, purchase, and manage digital gift cards for various products and services.
+This is the frontend for the GiftEase application, a digital gift card marketplace.
+
+## Deployment Information
+- Last deployment: {new Date().toISOString()}
+- Version: 1.0.0
 
 ## Features
 

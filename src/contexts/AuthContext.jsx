@@ -16,29 +16,26 @@ export const AuthProvider = ({ children }) => {
 
   // Check for existing admin token on app load
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      // Check for admin token
-      const adminToken = localStorage.getItem('adminToken');
-      if (adminToken) {
-        // For local admin, just check if token exists
-        setAdmin({ token: adminToken });
+    const checkAuthStatus = () => {
+      try {
+        // Check for admin token
+        const adminToken = localStorage.getItem('adminToken');
+        if (adminToken) {
+          // For local admin, just check if token exists
+          setAdmin({ token: adminToken });
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
-    // Set loading to false after a short delay to prevent blank page
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
+    // Check auth status immediately
     checkAuthStatus();
-    
-    // Clean up timer
-    return () => clearTimeout(timer);
   }, []);
 
-  const adminLogin = async (token) => {
+  const adminLogin = (token) => {
     try {
       // Save token to localStorage
       localStorage.setItem('adminToken', token);
@@ -51,8 +48,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const adminLogout = () => {
-    localStorage.removeItem('adminToken');
-    setAdmin(null);
+    try {
+      localStorage.removeItem('adminToken');
+      setAdmin(null);
+    } catch (error) {
+      console.error('Admin logout failed:', error);
+    }
   };
 
   const value = {
@@ -62,7 +63,6 @@ export const AuthProvider = ({ children }) => {
     adminLogout
   };
 
-  // Always render children, even while loading
   return (
     <AuthContext.Provider value={value}>
       {children}

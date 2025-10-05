@@ -9,7 +9,7 @@ const MobileNavigation = () => {
   const navItems = [
     { id: 'home', label: 'Home', icon: 'HomeAsIcon', path: '/' },
     { id: 'orders', label: 'Orders', icon: 'OrdersAsIcon', path: '/orders' },
-    { id: 'account', label: 'Track Order', icon: 'AccountAsIcon', path: '/track-order' }
+    { id: 'account', label: 'Account', icon: 'AccountAsIcon', path: '/track-order' }
   ];
 
   const isActive = (path) => {

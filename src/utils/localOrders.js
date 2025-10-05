@@ -70,7 +70,7 @@ export const getLocalPaymentSettings = () => {
     return settings ? JSON.parse(settings) : {
       upiId: 'giftease@upi',
       upiName: 'GiftEase Payments',
-      paymentInstructions: 'Please make the payment using UPI to the following details:\n1. Open your UPI app (Google Pay, PhonePe, Paytm, etc.)\n2. Scan the QR code or enter the UPI ID above\n3. Enter the exact amount\n4. Complete the payment and note the transaction ID',
+      paymentInstructions: 'Complete your payment using any UPI app:\n\n1. Open your preferred UPI app (Google Pay, PhonePe, Paytm, etc.)\n2. Scan the QR code or manually enter the UPI ID\n3. Verify the exact amount matches the product price\n4. Complete the payment and save the transaction ID\n5. Enter the transaction ID in the form below',
       qrCodeImage: ''
     };
   } catch (error) {
@@ -78,7 +78,7 @@ export const getLocalPaymentSettings = () => {
     return {
       upiId: 'giftease@upi',
       upiName: 'GiftEase Payments',
-      paymentInstructions: 'Please make the payment using UPI to the following details:\n1. Open your UPI app (Google Pay, PhonePe, Paytm, etc.)\n2. Scan the QR code or enter the UPI ID above\n3. Enter the exact amount\n4. Complete the payment and note the transaction ID',
+      paymentInstructions: 'Complete your payment using any UPI app:\n\n1. Open your preferred UPI app (Google Pay, PhonePe, Paytm, etc.)\n2. Scan the QR code or manually enter the UPI ID\n3. Verify the exact amount matches the product price\n4. Complete the payment and save the transaction ID\n5. Enter the transaction ID in the form below',
       qrCodeImage: ''
     };
   }

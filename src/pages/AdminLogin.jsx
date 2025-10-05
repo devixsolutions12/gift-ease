@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminLogin = () => {
-  const navigate = useNavigate();
   const { adminLogin } = useAuth();
+  const navigate = useNavigate();
   
   const [credentials, setCredentials] = useState({
     username: '',
@@ -26,19 +26,28 @@ const AdminLogin = () => {
     setLoading(true);
     setError('');
     
-    // Simple local authentication (in a real app, you'd want something more secure)
-    // For demo purposes, we'll use a simple check
-    if (credentials.username === 'admin' && credentials.password === 'password') {
-      // Create a simple token for demo purposes
-      const token = 'local-admin-token-' + Date.now();
-      
-      // Save token to localStorage and update context
-      adminLogin(token);
-      
-      // Redirect to admin dashboard
-      navigate('/admin/dashboard');
-    } else {
-      setError('Invalid credentials. For demo purposes, use username: "admin" and password: "password"');
+    try {
+      // Simple local authentication (in a real app, you'd want something more secure)
+      // For demo purposes, we'll use a simple check
+      if (credentials.username === 'admin' && credentials.password === 'password') {
+        // Create a simple token for demo purposes
+        const token = 'local-admin-token-' + Date.now();
+        
+        // Use the auth context to login
+        const result = adminLogin(token);
+        
+        if (result.success) {
+          // Redirect to admin dashboard
+          navigate('/admin/dashboard');
+        } else {
+          setError('Login failed. Please try again.');
+        }
+      } else {
+        setError('Invalid credentials. Please check your username and password.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An error occurred during login. Please try again.');
     }
     
     setLoading(false);
@@ -82,7 +91,7 @@ const AdminLogin = () => {
             </button>
             
             <div className="demo-credentials">
-              <p><strong>Demo credentials:</strong> username: "admin", password: "password"</p>
+              <p><strong>Note:</strong> For demo access, please contact the system administrator.</p>
             </div>
           </form>
         </div>

@@ -1,43 +1,73 @@
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+#!/usr/bin/env node
 
-// Create a simple deployment guide for Vercel
-const deployGuide = `
-GIFT-EASE FRONTEND DEPLOYMENT TO VERCEL
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-1. Go to https://vercel.com/dashboard
-2. Make sure you're logged into Vercel
-3. Click "New Project"
-4. Select repository: devixsolutions12/gift-ease-frontend
-5. Click "Import"
-6. Set these options:
-   - Framework Preset: Vite
-   - Root Directory: (leave empty)
-   - Build Command: npm run build
-   - Output Directory: dist
-7. Click "Environment Variables" and add:
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-   REACT_APP_API_URL=your_backend_url_from_render
-   VITE_API_URL=your_backend_url_from_render
+console.log('🚀 Starting automated deployment process...');
 
-   ^^^ BOTH variables should have the SAME URL from Render.com ^^^
+try {
+  // Step 1: Clean previous builds
+  console.log('🧹 Cleaning previous builds...');
+  execSync('npm run clean', { stdio: 'inherit' });
+} catch (error) {
+  console.log('ℹ️  No clean script found, continuing...');
+}
 
-8. Click "Deploy"
-9. Wait 2-3 minutes for deployment to complete
+try {
+  // Step 2: Install dependencies
+  console.log('📦 Installing dependencies...');
+  execSync('npm install', { stdio: 'inherit' });
+} catch (error) {
+  console.log('⚠️  Dependencies may already be installed, continuing...');
+}
 
-Your frontend URL will be:
-https://gift-ease-sand.vercel.app
+try {
+  // Step 3: Build the application
+  console.log('🏗️  Building the application...');
+  execSync('npm run build', { stdio: 'inherit' });
+  console.log('✅ Build completed successfully!');
+} catch (error) {
+  console.error('❌ Build failed:', error.message);
+  process.exit(1);
+}
 
-`;
+// Step 4: Verify build output
+const distPath = path.join(__dirname, 'dist');
+if (!fs.existsSync(distPath)) {
+  console.error('❌ Build directory not found!');
+  process.exit(1);
+}
 
-// Write the deployment guide to a file
-writeFileSync(join(process.cwd(), 'VERCEL_DEPLOYMENT_GUIDE.txt'), deployGuide);
+console.log('📁 Build directory contents:');
+const files = fs.readdirSync(distPath);
+files.forEach(file => {
+  console.log(`  - ${file}`);
+});
 
-console.log('✅ Vercel deployment guide created!');
-console.log('📁 File saved as: VERCEL_DEPLOYMENT_GUIDE.txt');
-console.log('');
-console.log('📋 NEXT STEPS:');
-console.log('1. Open VERCEL_DEPLOYMENT_GUIDE.txt');
-console.log('2. Follow the exact steps to deploy your frontend');
-console.log('');
-console.log('📝 REMEMBER: You need your backend URL from Render.com deployment');
+// Step 5: Check index.html for correct paths
+const indexPath = path.join(distPath, 'index.html');
+if (fs.existsSync(indexPath)) {
+  const indexContent = fs.readFileSync(indexPath, 'utf8');
+  if (indexContent.includes('src="/assets/') && indexContent.includes('href="/assets/')) {
+    console.log('✅ Asset paths are correctly configured (absolute paths)');
+  } else {
+    console.warn('⚠️  Asset paths may not be correctly configured');
+  }
+} else {
+  console.error('❌ index.html not found in build directory!');
+  process.exit(1);
+}
+
+console.log('\n🎉 Build verification completed successfully!');
+console.log('\n📋 To deploy to Vercel manually:');
+console.log('   1. Install Vercel CLI: npm install -g vercel');
+console.log('   2. Run: vercel --prod');
+console.log('\n🔗 Or push to your connected GitHub repository to trigger automatic deployment');
+
+console.log('\n✅ Automated deployment preparation completed!');

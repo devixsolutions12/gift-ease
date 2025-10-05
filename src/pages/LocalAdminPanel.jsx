@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { getLocalOrders, updateLocalOrder, getLocalPaymentSettings, saveLocalPaymentSettings } from '../utils/localOrders';
 
 const LocalAdminPanel = () => {
+  const { admin, adminLogout } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -34,165 +36,218 @@ const LocalAdminPanel = () => {
     totalRevenue: 0
   });
   
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!admin) {
+      navigate('/admin/login');
+    }
+  }, [admin, navigate]);
+  
   // Load data on component mount
   useEffect(() => {
-    loadOrders();
-    loadPaymentSettings();
-  }, []);
+    if (admin) {
+      try {
+        loadOrders();
+        loadPaymentSettings();
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    }
+  }, [admin]);
   
   const loadOrders = () => {
-    const ordersData = getLocalOrders();
-    setOrders(ordersData);
-    calculateStats(ordersData);
+    try {
+      const ordersData = getLocalOrders();
+      setOrders(ordersData);
+      calculateStats(ordersData);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    }
   };
   
   const loadPaymentSettings = () => {
-    const settings = getLocalPaymentSettings();
-    setPaymentSettings(settings);
-    if (settings.qrCodeImage) {
-      setQrCodePreview(settings.qrCodeImage);
+    try {
+      const settings = getLocalPaymentSettings();
+      setPaymentSettings(settings);
+      if (settings.qrCodeImage) {
+        setQrCodePreview(settings.qrCodeImage);
+      }
+    } catch (error) {
+      console.error('Error loading payment settings:', error);
     }
   };
   
   const calculateStats = (ordersData) => {
-    const totalOrders = ordersData.length;
-    const pendingOrders = ordersData.filter(order => order.status === 'pending').length;
-    const processingOrders = ordersData.filter(order => order.status === 'processing').length;
-    const approvedOrders = ordersData.filter(order => order.status === 'approved').length;
-    const deliveredOrders = ordersData.filter(order => order.status === 'delivered').length;
-    const rejectedOrders = ordersData.filter(order => order.status === 'rejected').length;
-    const totalRevenue = ordersData
-      .filter(order => order.status === 'approved' || order.status === 'delivered')
-      .reduce((sum, order) => sum + order.amount, 0);
-    
-    setStats({
-      totalOrders,
-      pendingOrders,
-      processingOrders,
-      approvedOrders,
-      deliveredOrders,
-      rejectedOrders,
-      totalRevenue
-    });
+    try {
+      const totalOrders = ordersData.length;
+      const pendingOrders = ordersData.filter(order => order.status === 'pending').length;
+      const processingOrders = ordersData.filter(order => order.status === 'processing').length;
+      const approvedOrders = ordersData.filter(order => order.status === 'approved').length;
+      const deliveredOrders = ordersData.filter(order => order.status === 'delivered').length;
+      const rejectedOrders = ordersData.filter(order => order.status === 'rejected').length;
+      const totalRevenue = ordersData
+        .filter(order => order.status === 'approved' || order.status === 'delivered')
+        .reduce((sum, order) => sum + (order.amount || 0), 0);
+      
+      setStats({
+        totalOrders,
+        pendingOrders,
+        processingOrders,
+        approvedOrders,
+        deliveredOrders,
+        rejectedOrders,
+        totalRevenue
+      });
+    } catch (error) {
+      console.error('Error calculating stats:', error);
+    }
   };
   
   // Filter orders based on search term, status, and date
   useEffect(() => {
-    let result = [...orders];
-    
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      result = result.filter(order => order.status === statusFilter);
-    }
-    
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(order => 
-        order.id.toLowerCase().includes(term) ||
-        order.productName.toLowerCase().includes(term) ||
-        (order.gmail && order.gmail.toLowerCase().includes(term)) ||
-        (order.freeFireUid && order.freeFireUid.toLowerCase().includes(term)) ||
-        (order.bgmiId && order.bgmiId.toLowerCase().includes(term)) ||
-        order.transactionId.toLowerCase().includes(term)
-      );
-    }
-    
-    // Apply date filter
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      result = result.filter(order => {
-        const orderDate = new Date(order.createdAt);
-        switch (dateFilter) {
-          case 'today':
-            return orderDate.toDateString() === now.toDateString();
-          case 'week':
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            return orderDate >= weekAgo;
-          case 'month':
-            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            return orderDate >= monthAgo;
-          default:
+    try {
+      let result = [...orders];
+      
+      // Apply status filter
+      if (statusFilter !== 'all') {
+        result = result.filter(order => order.status === statusFilter);
+      }
+      
+      // Apply search filter
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        result = result.filter(order => 
+          order.id.toLowerCase().includes(term) ||
+          (order.productName && order.productName.toLowerCase().includes(term)) ||
+          (order.gmail && order.gmail.toLowerCase().includes(term)) ||
+          (order.freeFireUid && order.freeFireUid.toLowerCase().includes(term)) ||
+          (order.bgmiId && order.bgmiId.toLowerCase().includes(term)) ||
+          (order.transactionId && order.transactionId.toLowerCase().includes(term))
+        );
+      }
+      
+      // Apply date filter
+      if (dateFilter !== 'all') {
+        const now = new Date();
+        result = result.filter(order => {
+          try {
+            const orderDate = new Date(order.createdAt);
+            switch (dateFilter) {
+              case 'today':
+                return orderDate.toDateString() === now.toDateString();
+              case 'week':
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return orderDate >= weekAgo;
+              case 'month':
+                const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                return orderDate >= monthAgo;
+              default:
+                return true;
+            }
+          } catch (error) {
+            console.error('Error filtering by date:', error);
             return true;
-        }
-      });
+          }
+        });
+      }
+      
+      setFilteredOrders(result);
+    } catch (error) {
+      console.error('Error filtering orders:', error);
     }
-    
-    setFilteredOrders(result);
   }, [orders, searchTerm, statusFilter, dateFilter]);
   
   const handleUpdateStatus = (orderId, status) => {
-    const updatedOrder = updateLocalOrder(orderId, { status });
-    if (updatedOrder) {
-      // Update the order in the state
-      const updatedOrders = orders.map(order => 
-        order.id === orderId ? updatedOrder : order
-      );
-      
-      setOrders(updatedOrders);
-      calculateStats(updatedOrders);
-      
-      // Reset form if this was the selected order
-      if (selectedOrder === orderId) {
-        setSelectedOrder(null);
+    try {
+      const updatedOrder = updateLocalOrder(orderId, { status });
+      if (updatedOrder) {
+        // Update the order in the state
+        const updatedOrders = orders.map(order => 
+          order.id === orderId ? updatedOrder : order
+        );
+        
+        setOrders(updatedOrders);
+        calculateStats(updatedOrders);
+        
+        // Reset form if this was the selected order
+        if (selectedOrder === orderId) {
+          setSelectedOrder(null);
+        }
+      } else {
+        alert('Error updating order status. Please try again.');
       }
-    } else {
+    } catch (error) {
+      console.error('Error updating order status:', error);
       alert('Error updating order status. Please try again.');
     }
   };
   
   const handleApprove = (orderId) => {
-    if (!giftCode) {
-      alert('Please enter a gift code');
-      return;
-    }
-    
-    const updatedOrder = updateLocalOrder(orderId, { status: 'approved', giftCode });
-    if (updatedOrder) {
-      // Update the order in the state
-      const updatedOrders = orders.map(order => 
-        order.id === orderId ? updatedOrder : order
-      );
+    try {
+      if (!giftCode) {
+        alert('Please enter a gift code');
+        return;
+      }
       
-      setOrders(updatedOrders);
-      calculateStats(updatedOrders);
-      
-      // Reset form
-      setSelectedOrder(null);
-      setGiftCode('');
-    } else {
+      const updatedOrder = updateLocalOrder(orderId, { status: 'approved', giftCode });
+      if (updatedOrder) {
+        // Update the order in the state
+        const updatedOrders = orders.map(order => 
+          order.id === orderId ? updatedOrder : order
+        );
+        
+        setOrders(updatedOrders);
+        calculateStats(updatedOrders);
+        
+        // Reset form
+        setSelectedOrder(null);
+        setGiftCode('');
+      } else {
+        alert('Error updating order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error approving order:', error);
       alert('Error updating order. Please try again.');
     }
   };
   
   const handleReject = (orderId) => {
-    if (!rejectionReason) {
-      alert('Please enter a rejection reason');
-      return;
-    }
-    
-    const updatedOrder = updateLocalOrder(orderId, { status: 'rejected', rejectionReason });
-    if (updatedOrder) {
-      // Update the order in the state
-      const updatedOrders = orders.map(order => 
-        order.id === orderId ? updatedOrder : order
-      );
+    try {
+      if (!rejectionReason) {
+        alert('Please enter a rejection reason');
+        return;
+      }
       
-      setOrders(updatedOrders);
-      calculateStats(updatedOrders);
-      
-      // Reset form
-      setSelectedOrder(null);
-      setRejectionReason('');
-    } else {
+      const updatedOrder = updateLocalOrder(orderId, { status: 'rejected', rejectionReason });
+      if (updatedOrder) {
+        // Update the order in the state
+        const updatedOrders = orders.map(order => 
+          order.id === orderId ? updatedOrder : order
+        );
+        
+        setOrders(updatedOrders);
+        calculateStats(updatedOrders);
+        
+        // Reset form
+        setSelectedOrder(null);
+        setRejectionReason('');
+      } else {
+        alert('Error updating order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error rejecting order:', error);
       alert('Error updating order. Please try again.');
     }
   };
   
   const handleLogout = () => {
-    // Clear admin session (in a real app, you might want to do more here)
-    localStorage.removeItem('adminToken');
-    navigate('/');
+    try {
+      // Clear admin session
+      adminLogout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
   
   const getStatusClass = (status) => {
@@ -226,69 +281,107 @@ const LocalAdminPanel = () => {
   };
   
   const exportToCSV = () => {
-    const csvContent = [
-      ['Order ID', 'Product', 'User Info', 'Amount', 'Status', 'Transaction ID', 'Date', 'Gift Code', 'Rejection Reason'],
-      ...filteredOrders.map(order => {
-        // Determine which user info field is populated
-        let userInfo = '';
-        if (order.gmail) {
-          userInfo = `Gmail: ${order.gmail}`;
-        } else if (order.freeFireUid) {
-          userInfo = `FF UID: ${order.freeFireUid}`;
-        } else if (order.bgmiId) {
-          userInfo = `BGMI ID: ${order.bgmiId}`;
-        }
-        
-        return [
-          order.id,
-          order.productName,
-          userInfo,
-          order.amount,
-          order.status,
-          order.transactionId,
-          new Date(order.createdAt).toLocaleString(),
-          order.giftCode || '',
-          order.rejectionReason || ''
-        ];
-      })
-    ].map(row => row.join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `gift-ease-orders-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const csvContent = [
+        ['Order ID', 'Product', 'User Info', 'Amount', 'Status', 'Transaction ID', 'Date', 'Gift Code', 'Rejection Reason'],
+        ...filteredOrders.map(order => {
+          try {
+            // Determine which user info field is populated
+            let userInfo = '';
+            if (order.gmail) {
+              userInfo = `Gmail: ${order.gmail}`;
+            } else if (order.freeFireUid) {
+              userInfo = `FF UID: ${order.freeFireUid}`;
+            } else if (order.bgmiId) {
+              userInfo = `BGMI ID: ${order.bgmiId}`;
+            }
+            
+            return [
+              order.id || '',
+              order.productName || '',
+              userInfo,
+              order.amount || '',
+              order.status || '',
+              order.transactionId || '',
+              order.createdAt ? new Date(order.createdAt).toLocaleString() : '',
+              order.giftCode || '',
+              order.rejectionReason || ''
+            ];
+          } catch (error) {
+            console.error('Error processing order for CSV:', error);
+            return ['', '', '', '', '', '', '', '', ''];
+          }
+        })
+      ].map(row => row.join(',')).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `gift-ease-orders-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting to CSV:', error);
+      alert('Error exporting to CSV. Please try again.');
+    }
   };
   
   // Handle QR code file upload
   const handleQrCodeUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setQrCodePreview(event.target.result);
-        setPaymentSettings({
-          ...paymentSettings,
-          qrCodeImage: event.target.result
-        });
-      };
-      reader.readAsDataURL(file);
+    try {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            setQrCodePreview(event.target.result);
+            setPaymentSettings({
+              ...paymentSettings,
+              qrCodeImage: event.target.result
+            });
+          } catch (error) {
+            console.error('Error setting QR code preview:', error);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Error uploading QR code:', error);
     }
   };
   
   // Save payment settings
   const savePaymentSettings = () => {
-    const success = saveLocalPaymentSettings(paymentSettings);
-    if (success) {
-      alert('Payment settings saved successfully!');
-    } else {
+    try {
+      console.log('AdminPanel: Saving payment settings', paymentSettings);
+      const success = saveLocalPaymentSettings(paymentSettings);
+      if (success) {
+        console.log('AdminPanel: Payment settings saved successfully!');
+        // Dispatch storage event manually to ensure other tabs update immediately
+        const storageEvent = new StorageEvent('storage', {
+          key: 'giftEasePaymentSettings',
+          newValue: JSON.stringify(paymentSettings),
+          storageArea: window.localStorage
+        });
+        window.dispatchEvent(storageEvent);
+        alert('Payment settings saved successfully!');
+      } else {
+        console.log('AdminPanel: Error saving payment settings');
+        alert('Error saving payment settings. Please try again.');
+      }
+    } catch (error) {
+      console.error('AdminPanel: Error saving payment settings:', error);
       alert('Error saving payment settings. Please try again.');
     }
   };
+  
+  // Redirect to login if not authenticated
+  if (!admin) {
+    return null; // or a loading spinner
+  }
   
   return (
     <div className="admin-dashboard">
@@ -434,7 +527,7 @@ const LocalAdminPanel = () => {
                     <div key={order.id} className="order-card-admin">
                       <div className="order-header-admin">
                         <div className="order-info-admin">
-                          <h4>{order.productName}</h4>
+                          <h4>{order.productName || 'Unknown Product'}</h4>
                           <p className="order-meta">
                             <span>Order ID: {order.id}</span>
                             {/* Display the relevant user information based on product type */}
@@ -445,7 +538,7 @@ const LocalAdminPanel = () => {
                         </div>
                         <div className="order-status-section">
                           <span className={`order-amount status-badge ${getStatusClass(order.status)}`}>
-                            ₹{order.amount}
+                            ₹{order.amount || 0}
                           </span>
                           <span className={`status-badge ${getStatusClass(order.status)}`}>
                             {getStatusText(order.status)}
@@ -456,11 +549,11 @@ const LocalAdminPanel = () => {
                       <div className="order-details-admin">
                         <div className="order-detail-item">
                           <span className="detail-label">Transaction ID:</span>
-                          <span className="detail-value">{order.transactionId}</span>
+                          <span className="detail-value">{order.transactionId || 'N/A'}</span>
                         </div>
                         <div className="order-detail-item">
                           <span className="detail-label">Date:</span>
-                          <span className="detail-value">{new Date(order.createdAt).toLocaleString()}</span>
+                          <span className="detail-value">{order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</span>
                         </div>
                         {order.rejectionReason && (
                           <div className="order-detail-item">
@@ -538,7 +631,7 @@ const LocalAdminPanel = () => {
                                 <label>Gift Code:</label>
                                 <input
                                   type="text"
-                                  value={giftCode || order.giftCode}
+                                  value={giftCode || order.giftCode || ''}
                                   onChange={(e) => setGiftCode(e.target.value)}
                                   placeholder="Enter gift code"
                                   className="form-control"
@@ -570,7 +663,7 @@ const LocalAdminPanel = () => {
                               <div className="form-group">
                                 <label>Rejection Reason:</label>
                                 <textarea
-                                  value={rejectionReason || order.rejectionReason}
+                                  value={rejectionReason || order.rejectionReason || ''}
                                   onChange={(e) => setRejectionReason(e.target.value)}
                                   placeholder="Enter rejection reason"
                                   className="form-control"
@@ -594,7 +687,7 @@ const LocalAdminPanel = () => {
                                 <label>Gift Code:</label>
                                 <input
                                   type="text"
-                                  value={order.giftCode}
+                                  value={order.giftCode || ''}
                                   className="form-control"
                                   disabled
                                 />
@@ -643,7 +736,7 @@ const LocalAdminPanel = () => {
                   <input
                     type="text"
                     id="upiId"
-                    value={paymentSettings.upiId}
+                    value={paymentSettings.upiId || ''}
                     onChange={(e) => setPaymentSettings({
                       ...paymentSettings,
                       upiId: e.target.value
@@ -658,7 +751,7 @@ const LocalAdminPanel = () => {
                   <input
                     type="text"
                     id="upiName"
-                    value={paymentSettings.upiName}
+                    value={paymentSettings.upiName || ''}
                     onChange={(e) => setPaymentSettings({
                       ...paymentSettings,
                       upiName: e.target.value
@@ -672,7 +765,7 @@ const LocalAdminPanel = () => {
                   <label htmlFor="paymentInstructions">Payment Instructions:</label>
                   <textarea
                     id="paymentInstructions"
-                    value={paymentSettings.paymentInstructions}
+                    value={paymentSettings.paymentInstructions || ''}
                     onChange={(e) => setPaymentSettings({
                       ...paymentSettings,
                       paymentInstructions: e.target.value

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import PaymentPage from './pages/PaymentPage';
 import AdminLogin from './pages/AdminLogin';
@@ -15,7 +16,9 @@ import OrdersPage from './pages/OrdersPage';
 import ErrorPage from './pages/ErrorPage';
 import TestLocalOrders from './pages/TestLocalOrders';
 import TrackOrderPage from './pages/TrackOrderPage';
+import TestSyncPage from './pages/TestSyncPage';
 import MobileNavigation from './components/MobileNavigation';
+import SettingsSyncTest from './pages/SettingsSyncTest';
 import './App.css';
 import './EnhancedStyles.css';
 
@@ -53,52 +56,59 @@ function App() {
   );
 
   return (
-    // Remove AuthProvider wrapper to test if it's causing the issue
     <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/packages/:productType" element={<PackagesPage />} />
-          <Route path="/checkout/:productType" element={<CheckoutPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/track-order" element={<TrackOrderPage />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<LocalAdminPanel />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/test" element={<TestPage />} />
-          <Route path="/image-test" element={<ImageTestPage />} />
-          <Route path="/debug-images" element={<DebugImages />} />
-          <Route path="/test-local-orders" element={<TestLocalOrders />} />
-          {/* Catch-all route for any other URLs to show error page */}
-          <Route path="*" element={<ErrorPage />} />
-        </Routes>
-        
-        {/* Mobile Navigation - only visible on mobile devices */}
-        <MobileNavigation />
-        
-        {/* Dark Mode Toggle */}
-        <button 
-          className="dark-mode-toggle"
-          onClick={toggleDarkMode}
-          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          <DarkModeIcon />
-        </button>
-        
-        {/* Floating Help Widget - positioned at bottom right */}
-        <button 
-          className="floating-help"
-          onClick={() => window.location.hash = '/help'}
-          aria-label="Get help and support"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <span>Help</span>
-        </button>
-      </div>
+      <AuthProvider>
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/packages/:productType" element={<PackagesPage />} />
+            <Route path="/checkout/:productType" element={<CheckoutPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/track-order" element={<TrackOrderPage />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={
+              <ProtectedRoute>
+                <LocalAdminPanel />
+              </ProtectedRoute>
+            } />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/test" element={<TestPage />} />
+            <Route path="/image-test" element={<ImageTestPage />} />
+            <Route path="/debug-images" element={<DebugImages />} />
+            <Route path="/test-local-orders" element={<TestLocalOrders />} />
+            <Route path="/test-sync" element={<TestSyncPage />} />
+            <Route path="/settings-sync-test" element={<SettingsSyncTest />} />
+            {/* Catch-all route for any other URLs to show error page */}
+            <Route path="*" element={<ErrorPage />} />
+          </Routes>
+          
+          {/* Mobile Navigation - only visible on mobile devices */}
+          <MobileNavigation />
+          
+          {/* Dark Mode Toggle */}
+          <button 
+            className="dark-mode-toggle"
+            onClick={toggleDarkMode}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            <DarkModeIcon />
+          </button>
+          
+          {/* Floating Help Widget - positioned at bottom right */}
+          <button 
+            className="floating-help"
+            onClick={() => window.location.hash = '/help'}
+            aria-label="Get help and support"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span>Help</span>
+          </button>
+        </div>
+      </AuthProvider>
     </Router>
   );
 }
