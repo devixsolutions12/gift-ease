@@ -38,7 +38,9 @@ const LocalAdminPanel = () => {
   
   // Redirect to login if not authenticated
   useEffect(() => {
+    console.log('LocalAdminPanel - Admin check:', admin);
     if (!admin) {
+      console.log('No admin, redirecting to login');
       navigate('/admin/login');
     }
   }, [admin, navigate]);
@@ -46,6 +48,7 @@ const LocalAdminPanel = () => {
   // Load data on component mount
   useEffect(() => {
     if (admin) {
+      console.log('Admin authenticated, loading data');
       try {
         loadOrders();
         loadPaymentSettings();

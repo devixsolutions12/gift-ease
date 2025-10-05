@@ -18,16 +18,22 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuthStatus = () => {
       try {
+        console.log('Checking auth status');
         // Check for admin token
         const adminToken = localStorage.getItem('adminToken');
+        console.log('Admin token from localStorage:', adminToken);
         if (adminToken) {
           // For local admin, just check if token exists
           setAdmin({ token: adminToken });
+          console.log('Admin authenticated with token');
+        } else {
+          console.log('No admin token found');
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
       } finally {
         setLoading(false);
+        console.log('Auth check complete, loading:', loading);
       }
     };
 
@@ -37,9 +43,11 @@ export const AuthProvider = ({ children }) => {
 
   const adminLogin = (token) => {
     try {
+      console.log('Logging in with token:', token);
       // Save token to localStorage
       localStorage.setItem('adminToken', token);
       setAdmin({ token });
+      console.log('Login successful');
       return { success: true };
     } catch (error) {
       console.error('Admin login failed:', error);
@@ -49,8 +57,10 @@ export const AuthProvider = ({ children }) => {
 
   const adminLogout = () => {
     try {
+      console.log('Logging out');
       localStorage.removeItem('adminToken');
       setAdmin(null);
+      console.log('Logout successful');
     } catch (error) {
       console.error('Admin logout failed:', error);
     }

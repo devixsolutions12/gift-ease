@@ -27,16 +27,20 @@ const AdminLogin = () => {
     setError('');
     
     try {
+      console.log('Attempting login with:', credentials);
       // Simple local authentication (in a real app, you'd want something more secure)
       // For demo purposes, we'll use a simple check
       if (credentials.username === 'admin' && credentials.password === 'password') {
         // Create a simple token for demo purposes
         const token = 'local-admin-token-' + Date.now();
+        console.log('Login successful, token:', token);
         
         // Use the auth context to login
         const result = adminLogin(token);
+        console.log('Auth context result:', result);
         
         if (result.success) {
+          console.log('Redirecting to admin dashboard');
           // Redirect to admin dashboard
           navigate('/admin/dashboard');
         } else {

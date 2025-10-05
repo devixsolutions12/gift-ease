@@ -19,6 +19,9 @@ import TrackOrderPage from './pages/TrackOrderPage';
 import TestSyncPage from './pages/TestSyncPage';
 import MobileNavigation from './components/MobileNavigation';
 import SettingsSyncTest from './pages/SettingsSyncTest';
+import AdminRouteTest from './pages/AdminRouteTest';
+import AuthDebug from './pages/AuthDebug';
+import RoutingTest from './pages/RoutingTest';
 import './App.css';
 import './EnhancedStyles.css';
 
@@ -71,6 +74,9 @@ function App() {
                 <LocalAdminPanel />
               </ProtectedRoute>
             } />
+            <Route path="/admin/test" element={<AdminRouteTest />} />
+            <Route path="/admin/debug" element={<AuthDebug />} />
+            <Route path="/routing-test" element={<RoutingTest />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="/image-test" element={<ImageTestPage />} />
