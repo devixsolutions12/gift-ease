@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLocalOrders, updateLocalOrder, getLocalPaymentSettings, saveLocalPaymentSettings } from '../utils/localOrders';
+import cloudSync from '../utils/cloudSync';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -48,11 +49,42 @@ const AdminDashboard = () => {
     setLoading(false);
   };
   
-  const loadPaymentSettings = () => {
-    const settings = getLocalPaymentSettings();
-    setPaymentSettings(settings);
-    if (settings.qrCodeImage) {
-      setQrCodePreview(settings.qrCodeImage);
+  // Load payment settings with cloud sync
+  const loadPaymentSettings = async () => {
+    try {
+      // First, try to sync with cloud
+      const currentSettings = getLocalPaymentSettings();
+      const syncResult = await cloudSync.syncSettings(currentSettings);
+      
+      if (syncResult.updated) {
+        // Update local settings with cloud version
+        setPaymentSettings(syncResult.settings);
+        saveLocalPaymentSettings(syncResult.settings);
+        
+        // Dispatch storage event to notify other tabs
+        const storageEvent = new StorageEvent('storage', {
+          key: 'giftEasePaymentSettings',
+          newValue: JSON.stringify(syncResult.settings),
+          storageArea: window.localStorage
+        });
+        window.dispatchEvent(storageEvent);
+        
+        console.log('Settings updated from cloud sync');
+      } else {
+        // Use local settings
+        setPaymentSettings(currentSettings);
+        if (currentSettings.qrCodeImage) {
+          setQrCodePreview(currentSettings.qrCodeImage);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading payment settings with sync:', error);
+      // Fallback to local settings
+      const settings = getLocalPaymentSettings();
+      setPaymentSettings(settings);
+      if (settings.qrCodeImage) {
+        setQrCodePreview(settings.qrCodeImage);
+      }
     }
   };
   
@@ -283,18 +315,29 @@ const AdminDashboard = () => {
   };
   
   // Save payment settings
-  const savePaymentSettings = () => {
-    const success = saveLocalPaymentSettings(paymentSettings);
-    if (success) {
-      // Dispatch storage event manually to ensure other tabs update immediately
-      const storageEvent = new StorageEvent('storage', {
-        key: 'giftEasePaymentSettings',
-        newValue: JSON.stringify(paymentSettings),
-        storageArea: window.localStorage
-      });
-      window.dispatchEvent(storageEvent);
-      alert('Payment settings saved successfully!');
-    } else {
+  const savePaymentSettings = async () => {
+    try {
+      console.log('AdminPanel: Saving payment settings', paymentSettings);
+      const success = saveLocalPaymentSettings(paymentSettings);
+      
+      if (success) {
+        // Also save to cloud storage for sync
+        await cloudSync.saveSettings(paymentSettings);
+        
+        // Dispatch storage event manually to ensure other tabs update immediately
+        const storageEvent = new StorageEvent('storage', {
+          key: 'giftEasePaymentSettings',
+          newValue: JSON.stringify(paymentSettings),
+          storageArea: window.localStorage
+        });
+        window.dispatchEvent(storageEvent);
+        alert('Payment settings saved successfully!');
+      } else {
+        console.log('AdminPanel: Error saving payment settings');
+        alert('Error saving payment settings. Please try again.');
+      }
+    } catch (error) {
+      console.error('AdminPanel: Error saving payment settings:', error);
       alert('Error saving payment settings. Please try again.');
     }
   };
@@ -333,6 +376,36 @@ const AdminDashboard = () => {
       reader.readAsText(file);
     }
   };
+  
+  // Add effect to periodically check for sync updates
+  useEffect(() => {
+    // Check for updates every 30 seconds
+    const syncInterval = setInterval(async () => {
+      try {
+        const currentSettings = getLocalPaymentSettings();
+        const syncResult = await cloudSync.syncSettings(currentSettings);
+        
+        if (syncResult.updated) {
+          setPaymentSettings(syncResult.settings);
+          saveLocalPaymentSettings(syncResult.settings);
+          
+          // Dispatch storage event to notify other components
+          const storageEvent = new StorageEvent('storage', {
+            key: 'giftEasePaymentSettings',
+            newValue: JSON.stringify(syncResult.settings),
+            storageArea: window.localStorage
+          });
+          window.dispatchEvent(storageEvent);
+          
+          console.log('Auto-sync updated settings from cloud');
+        }
+      } catch (error) {
+        console.error('Auto-sync error:', error);
+      }
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(syncInterval);
+  }, []);
   
   if (loading) {
     return (
