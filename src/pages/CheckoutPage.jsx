@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import bgmiImage from '../assets/bgmi.png';
 import { saveLocalOrder } from '../utils/localOrders';
 import cloudSync from '../utils/cloudSync';
+import crossDeviceSync from '../utils/crossDeviceSync';
 // Using professional SVG placeholders that represent actual product images
 const playStoreImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='20' fill='%234285F4'/%3E%3Crect x='40' y='40' width='120' height='80' rx='10' fill='white'/%3E%3Ccircle cx='70' cy='80' r='15' fill='%2334A853'/%3E%3Ccircle cx='110' cy='80' r='15' fill='%23FBBC05'/%3E%3Ccircle cx='150' cy='80' r='15' fill='%23EA4335'/%3E%3Crect x='60' y='130' width='80' height='15' rx='7' fill='%23ccc'/%3E%3Ctext x='100' y='165' font-family='Arial, sans-serif' font-size='14' text-anchor='middle' fill='white'%3EGoogle Play%3C/text%3E%3C/svg%3E";
 const freeFireImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='20' fill='%23FF6B35'/%3E%3Cpath d='M100 50 L130 100 L100 150 L70 100 Z' fill='white'/%3E%3Ccircle cx='100' cy='100' r='25' fill='%23FF6B35'/%3E%3Crect x='60' y='160' width='80' height='15' rx='7' fill='%23fff'/%3E%3Ctext x='100' y='190' font-family='Arial, sans-serif' font-size='14' text-anchor='middle' fill='white'%3EFree Fire%3C/text%3E%3C/svg%3E";
@@ -157,12 +158,10 @@ const CheckoutPage = () => {
   
   // Add effect to periodically check for sync updates
   useEffect(() => {
-    // Check for updates every 30 seconds
+    // Check for updates every 10 seconds (more frequent for better sync)
     const syncInterval = setInterval(async () => {
       try {
-        const currentSettings = getLocalPaymentSettings();
-        const syncResult = await cloudSync.syncSettings(currentSettings);
-        
+        const syncResult = crossDeviceSync.updateFromSyncData();
         if (syncResult.updated) {
           setPaymentSettings(syncResult.settings);
           saveLocalPaymentSettings(syncResult.settings);
@@ -175,12 +174,12 @@ const CheckoutPage = () => {
           });
           window.dispatchEvent(storageEvent);
           
-          console.log('CheckoutPage: Auto-sync updated settings from cloud');
+          console.log('CheckoutPage: Auto-sync updated settings');
         }
       } catch (error) {
         console.error('CheckoutPage: Auto-sync error:', error);
       }
-    }, 30000); // 30 seconds
+    }, 10000); // 10 seconds
     
     return () => clearInterval(syncInterval);
   }, []);

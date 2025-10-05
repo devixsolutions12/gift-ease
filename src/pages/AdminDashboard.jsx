@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLocalOrders, updateLocalOrder, getLocalPaymentSettings, saveLocalPaymentSettings } from '../utils/localOrders';
 import cloudSync from '../utils/cloudSync';
+import crossDeviceSync from '../utils/crossDeviceSync';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -314,30 +315,22 @@ const AdminDashboard = () => {
     }
   };
   
-  // Save payment settings
-  const savePaymentSettings = async () => {
-    try {
-      console.log('AdminPanel: Saving payment settings', paymentSettings);
-      const success = saveLocalPaymentSettings(paymentSettings);
+  // Save payment settings with cross-device sync
+  const savePaymentSettings = () => {
+    const success = saveLocalPaymentSettings(paymentSettings);
+    if (success) {
+      // Also save with cross-device sync
+      crossDeviceSync.forceSync(paymentSettings);
       
-      if (success) {
-        // Also save to cloud storage for sync
-        await cloudSync.saveSettings(paymentSettings);
-        
-        // Dispatch storage event manually to ensure other tabs update immediately
-        const storageEvent = new StorageEvent('storage', {
-          key: 'giftEasePaymentSettings',
-          newValue: JSON.stringify(paymentSettings),
-          storageArea: window.localStorage
-        });
-        window.dispatchEvent(storageEvent);
-        alert('Payment settings saved successfully!');
-      } else {
-        console.log('AdminPanel: Error saving payment settings');
-        alert('Error saving payment settings. Please try again.');
-      }
-    } catch (error) {
-      console.error('AdminPanel: Error saving payment settings:', error);
+      // Dispatch storage event manually to ensure other tabs update immediately
+      const storageEvent = new StorageEvent('storage', {
+        key: 'giftEasePaymentSettings',
+        newValue: JSON.stringify(paymentSettings),
+        storageArea: window.localStorage
+      });
+      window.dispatchEvent(storageEvent);
+      alert('Payment settings saved successfully!');
+    } else {
       alert('Error saving payment settings. Please try again.');
     }
   };

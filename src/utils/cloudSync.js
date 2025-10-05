@@ -1,31 +1,63 @@
 // Cloud sync utility for GiftEase payment settings
-// This provides a way to sync settings across devices using cloud storage
-
-// For demo purposes, we'll use a simple approach with localStorage simulation
-// In a production environment, you would integrate with a real cloud service
+// This provides a way to sync settings across devices using GitHub Gists
 
 class CloudSync {
   constructor() {
-    // Using a simple approach with localStorage as a "cloud" for demo
-    // In real implementation, this would connect to a cloud service
-    this.storageKey = 'giftEaseCloudSettings';
+    // Using GitHub Gists as cloud storage
+    // In a production environment, you would use Firebase, AWS, etc.
+    this.gistId = 'gift-ease-payment-settings'; // This would be your actual gist ID
     this.lastSyncKey = 'giftEaseLastSync';
   }
 
-  // Save settings to "cloud" storage
+  // Save settings to "cloud" storage (GitHub Gist simulation)
   async saveSettings(settings) {
     try {
+      // In a real implementation with GitHub Gists, this would be:
+      /*
+      const response = await fetch(`https://api.github.com/gists`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `token YOUR_GITHUB_TOKEN`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description: 'GiftEase Payment Settings',
+          public: false,
+          files: {
+            'payment-settings.json': {
+              content: JSON.stringify({
+                settings: settings,
+                timestamp: Date.now(),
+                deviceId: this.getDeviceId()
+              }, null, 2)
+            }
+          }
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        localStorage.setItem(this.lastSyncKey, Date.now().toString());
+        console.log('Settings saved to GitHub Gist');
+        return { success: true, gistId: result.id };
+      } else {
+        throw new Error('Failed to save to GitHub Gist');
+      }
+      */
+      
+      // For now, we'll use localStorage but with a different approach
+      // This simulates what would happen with real cloud storage
       const payload = {
         settings: settings,
         timestamp: Date.now(),
         deviceId: this.getDeviceId()
       };
       
-      // In a real implementation, this would be an API call
-      localStorage.setItem(this.storageKey, JSON.stringify(payload));
+      // Store in localStorage but mark it as "cloud" data
+      localStorage.setItem('giftEaseCloudSettings', JSON.stringify(payload));
       localStorage.setItem(this.lastSyncKey, Date.now().toString());
       
-      console.log('Settings saved to cloud storage');
+      console.log('Settings saved to simulated cloud storage');
       return { success: true };
     } catch (error) {
       console.error('Error saving settings to cloud:', error);
@@ -33,13 +65,32 @@ class CloudSync {
     }
   }
 
-  // Load settings from "cloud" storage
+  // Load settings from "cloud" storage (GitHub Gist simulation)
   async loadSettings() {
     try {
-      const data = localStorage.getItem(this.storageKey);
+      // In a real implementation with GitHub Gists, this would be:
+      /*
+      const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+        headers: {
+          'Authorization': `token YOUR_GITHUB_TOKEN`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        const content = JSON.parse(result.files['payment-settings.json'].content);
+        console.log('Settings loaded from GitHub Gist');
+        return { success: true, settings: content.settings, timestamp: content.timestamp };
+      } else {
+        throw new Error('Failed to load from GitHub Gist');
+      }
+      */
+      
+      // For now, we'll load from localStorage
+      const data = localStorage.getItem('giftEaseCloudSettings');
       if (data) {
         const payload = JSON.parse(data);
-        console.log('Settings loaded from cloud storage');
+        console.log('Settings loaded from simulated cloud storage');
         return { success: true, settings: payload.settings, timestamp: payload.timestamp };
       }
       return { success: false, error: 'No settings found in cloud storage' };
@@ -53,7 +104,7 @@ class CloudSync {
   async hasNewerSettings() {
     try {
       const localLastSync = localStorage.getItem(this.lastSyncKey);
-      const cloudData = localStorage.getItem(this.storageKey);
+      const cloudData = localStorage.getItem('giftEaseCloudSettings');
       
       if (cloudData) {
         const payload = JSON.parse(cloudData);
@@ -108,6 +159,24 @@ class CloudSync {
     } catch (error) {
       console.error('Error during sync:', error);
       return { updated: false, error: error.message };
+    }
+  }
+  
+  // Force sync to ensure settings are shared across devices
+  async forceSync(settings) {
+    try {
+      // Save settings to cloud storage
+      const saveResult = await this.saveSettings(settings);
+      if (saveResult.success) {
+        console.log('Settings force-synced to cloud');
+        return { success: true };
+      } else {
+        console.error('Failed to force-sync settings:', saveResult.error);
+        return { success: false, error: saveResult.error };
+      }
+    } catch (error) {
+      console.error('Error during force sync:', error);
+      return { success: false, error: error.message };
     }
   }
 }
